@@ -1,11 +1,11 @@
 from aiogram import Dispatcher, types
 from aiogram.dispatcher import FSMContext
-from aiogram.dispatcher.filters import Text, ExceptionsFilter
+from aiogram.dispatcher.filters import Text
 from aiogram.dispatcher.filters.state import State, StatesGroup
 
 from connect_db import get_table_list, get_item_list
 from stock import allowed_actions_list, get_element_quantity, update_element_quantuty_take, update_element_quantuty_put
-
+from buttons.buttons import kb_actions, kb_sections
 
 class FSMAdmin(StatesGroup):
     action_state = State()
@@ -17,7 +17,7 @@ class FSMAdmin(StatesGroup):
 # @dp.register_message_handler(commands=['start'], state=None)
 async def process_start_command(message: types.Message):
     await FSMAdmin.action_state.set()
-    await message.answer("Привіт!\nЯ бот-помічник для менеджерів Маку!\nНапиши дію для виконання.\nЯ знаю такі дії:\n" + ('\n'.join(map(str, allowed_actions_list))))
+    await message.answer("Привіт!\nЯ бот-помічник для менеджерів Маку!\nНапиши дію для виконання.\nЯ знаю такі дії:", reply_markup=kb_actions)
 
 # Action handlers in here
 # @dp.message_handler(Text(equals=allowed_actions_list, ignore_case=True), state=FSMAdmin.action_state)
@@ -25,7 +25,7 @@ async def get_action(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         data['action'] = message.text
     await FSMAdmin.next()
-    await message.answer("Тепер вибери розділ.\nЄ такі розділи:\n" + ('\n'.join(map(str, get_table_list()))))
+    await message.answer("Тепер вибери розділ.\nЄ такі розділи:", reply_markup=kb_sections)
 
 # @dp.message_handler(state=FSMAdmin.action_state)
 async def get_action_err(message: types.Message, state: FSMContext):
