@@ -13,10 +13,11 @@ def get_table_list(): # get names of tables in DB
     return table_list
 
 def get_item_list(table_name): # get names of items in table *name* in DB
-    item_list = []
+    item_dict = {}
     items = cur.execute("SELECT Name FROM " + table_name +";").fetchall()
-
+    index = 1
     for item in items:
         item = item[0]
-        item_list.append(item)
-    return item_list
+        item_dict.update({index : item})
+        index = index + 1
+    return item_dict

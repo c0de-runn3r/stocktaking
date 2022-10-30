@@ -38,7 +38,7 @@ async def get_section(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         data['section'] = message.text
     await FSMAdmin.next()
-    await message.answer("Тепер вибери предмет.\nЄ такі предмети:\n" +('\n'.join(map(str, get_item_list(data['section'])))))
+    await message.answer("Тепер вибери предмет.\nЄ такі предмети:\n" + ('\n'.join(map(str, list(get_item_list(data['section']).values())))))
 
 # @dp.message_handler(state=FSMAdmin.section_state)
 async def get_section_err(message: types.Message, state: FSMContext):
