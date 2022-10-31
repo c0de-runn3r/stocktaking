@@ -1,7 +1,5 @@
 from aiogram import executor
 from create_bot import dp
-from stock import get_element_quantity, update_element_quantuty_put
-
 
 async def on_statup(_):
     print("Bot started")
