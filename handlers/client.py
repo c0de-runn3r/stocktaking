@@ -5,7 +5,7 @@ from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.types import KeyboardButton, ReplyKeyboardMarkup
 
 from connect_db import get_table_list, get_item_list
-from stock import allowed_actions_list, get_element_quantity, update_element_quantuty_take, update_element_quantuty_put
+from stock import add_new_item, allowed_actions_list, get_element_quantity, update_element_quantuty_take, update_element_quantuty_put
 from buttons.buttons import kb_actions, kb_sections, cancel_bttn
 
 class FSMAdmin(StatesGroup):
@@ -13,6 +13,8 @@ class FSMAdmin(StatesGroup):
     section_state = State()
     item_state = State()
     quantity_state = State()
+    wrin_state = State()
+    location_state = State()
 
 # start handlers
 # @dp.register_message_handler(commands=['start'], state=None)
@@ -25,7 +27,7 @@ async def process_start_command(message: types.Message):
 async def get_action(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         data['action'] = message.text
-    await FSMAdmin.next()
+    await FSMAdmin.section_state.set()
     await message.answer("Тепер вибери розділ.\nЄ такі розділи:", reply_markup=kb_sections)
 
 # @dp.message_handler(state=FSMAdmin.action_state)
@@ -38,13 +40,17 @@ async def get_action_err(message: types.Message, state: FSMContext):
 async def get_section(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         data['section'] = message.text
-    kb_items = ReplyKeyboardMarkup(one_time_keyboard=True)
-    for item in get_item_list(data['section']):
-        item = KeyboardButton(item)
-        kb_items.add(item)
-    kb_items.add(cancel_bttn)
-    await FSMAdmin.next()
-    await message.answer("Тепер вибери предмет.\nЄ такі предмети:", reply_markup=kb_items)
+    if data['action'] == "Додати новий предмет":
+        await FSMAdmin.item_state.set()
+        await message.answer("Напиши назву предмета:")
+    else:
+        kb_items = ReplyKeyboardMarkup(one_time_keyboard=True)
+        for item in get_item_list(data['section']):
+            item = KeyboardButton(item)
+            kb_items.add(item)
+        kb_items.add(cancel_bttn)
+        await FSMAdmin.item_state.set()
+        await message.answer("Тепер вибери предмет.\nЄ такі предмети:", reply_markup=kb_items)
 
 # @dp.message_handler(state=FSMAdmin.section_state)
 async def get_section_err(message: types.Message, state: FSMContext):
@@ -56,8 +62,12 @@ async def get_section_err(message: types.Message, state: FSMContext):
 async def get_item(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         data['item'] = message.text
-    await FSMAdmin.next()
-    await message.answer("Тепер введи кількість.")
+    if data['action'] == 'Додати новий предмет':
+        await FSMAdmin.wrin_state.set()
+        await message.answer("Тепер введи WRIN:")
+    else:
+        await FSMAdmin.quantity_state.set()
+        await message.answer("Тепер введи кількість:")
 
 # Quantity handlers in here
 # @dp.message_handler(state=FSMAdmin.quantity_state)
@@ -66,12 +76,37 @@ async def get_quantity(message: types.Message, state: FSMContext):
         data['quantity'] = int(message.text)
     async with state.proxy() as data:
         if data['action'] == 'Взяти':
-            new_quantity = update_element_quantuty_take(data['section'], data['item'], get_element_quantity(data['section'], data['item']), data['quantity'])
-            await message.answer("Успішно. Нова кількість елемента: " + data['item'] + " складає " + str(new_quantity) + " одиниць.", reply_markup=kb_actions)
+            if get_element_quantity(data['section'], data['item']) < data['quantity']:
+                await message.answer("Не можна взяти більше '{}', аніж є на складі ({})".format(data['item'], get_element_quantity(data['section'], data['item'])))
+                await FSMAdmin.quantity_state.set()
+            else:
+                new_quantity = update_element_quantuty_take(data['section'], data['item'], get_element_quantity(data['section'], data['item']), data['quantity'])
+                await message.answer("Успішно. Нова кількість елемента: " + data['item'] + " складає " + str(new_quantity) + " одиниць.", reply_markup=kb_actions)
+                await FSMAdmin.action_state.set()
         elif data['action'] == 'Покласти':
             new_quantity = update_element_quantuty_put(data['section'], data['item'], get_element_quantity(data['section'], data['item']), data['quantity'])
             await message.answer("Успішно. Нова кількість елемента: " + data['item'] + " складає " + str(new_quantity) + " одиниць.", reply_markup=kb_actions)
-    await FSMAdmin.action_state.set()
+            await FSMAdmin.action_state.set()
+        elif data['action'] == 'Додати новий предмет':
+            msg = add_new_item(data['section'], data['wrin'], data['item'], data['quantity'], data['location'])
+            await message.answer(msg, reply_markup=kb_actions)
+            await FSMAdmin.action_state.set()
+
+# wrin handlers in here
+# @dp.message_handler(state=FSMAdmin.wrin_state)
+async def get_wrin(message: types.Message, state: FSMContext):
+    async with state.proxy() as data:
+        data['wrin'] = message.text
+    await FSMAdmin.location_state.set()
+    await message.answer("Тепер вкажи локацію (де зберігається цей предмет):")
+
+# location handlers in here
+# @dp.message_handler(state=FSMAdmin.location_state)
+async def get_location(message: types.Message, state: FSMContext):
+    async with state.proxy() as data:
+        data['location'] = message.text
+    await FSMAdmin.quantity_state.set()
+    await message.answer("Тепер вкажи кількість:")
 
 # Cancel handlers in here
 # @dp.message_handler(Text(equals="відміна", ignore_case=True), state="*")
@@ -91,6 +126,8 @@ def register_handlers_client(dp: Dispatcher):
     dp.register_message_handler(get_section, Text(equals=get_table_list(), ignore_case=True), state=FSMAdmin.section_state)
     dp.register_message_handler(get_section_err, state=FSMAdmin.section_state)
     dp.register_message_handler(get_item, state=FSMAdmin.item_state)
+    dp.register_message_handler(get_wrin, state=FSMAdmin.wrin_state)
+    dp.register_message_handler(get_location,state=FSMAdmin.location_state)
     dp.register_message_handler(get_quantity, state=FSMAdmin.quantity_state)
     
     

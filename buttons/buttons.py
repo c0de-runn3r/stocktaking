@@ -7,7 +7,7 @@ from stock import allowed_actions_list
 cancel_bttn = KeyboardButton("❌ Відміна ❌")
 
 # actions keyboard
-kb_actions = ReplyKeyboardMarkup(resize_keyboard=True)
+kb_actions = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
 
 for act in allowed_actions_list:
     act = KeyboardButton(act)
@@ -15,7 +15,7 @@ for act in allowed_actions_list:
 kb_actions.add(cancel_bttn)
 
 # sections keyboard
-kb_sections = ReplyKeyboardMarkup(resize_keyboard=True)
+kb_sections = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
 
 for section in get_table_list():
     section = KeyboardButton(section)
