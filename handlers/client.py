@@ -4,9 +4,10 @@ from aiogram.dispatcher.filters import Text
 from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.types import KeyboardButton, ReplyKeyboardMarkup
 
-from connect_db import get_table_list, get_item_list
+from create_bot import get_username_list, add_username
+from connect_db import get_table_list, get_item_list, get_item_list_with_quantity
 from stock import add_new_item, allowed_actions_list, get_element_quantity, update_element_quantuty_take, update_element_quantuty_put
-from buttons.buttons import kb_actions, kb_sections, cancel_bttn
+from buttons.buttons import kb_actions, kb_sections, cancel_bttn, kb_actions_add_user
 
 class FSMAdmin(StatesGroup):
     action_state = State()
@@ -15,20 +16,37 @@ class FSMAdmin(StatesGroup):
     quantity_state = State()
     wrin_state = State()
     location_state = State()
+    username_state = State()
 
 # start handlers
 # @dp.register_message_handler(commands=['start'], state=None)
 async def process_start_command(message: types.Message):
-    await FSMAdmin.action_state.set()
-    await message.answer("Привіт!\nЯ бот-помічник для менеджерів Маку!\nНапиши дію для виконання.\nЯ знаю такі дії:", reply_markup=kb_actions)
+    user_name = message.from_user.username
+    if user_name in get_username_list():
+        await FSMAdmin.action_state.set()
+        await message.answer("Привіт!\nЯ бот-помічник для менеджерів Маку!\nНапиши дію для виконання.\nЯ знаю такі дії:", reply_markup=kb_actions)
+    elif user_name == "valeryostapenko":
+        await FSMAdmin.action_state.set()
+        await message.answer("Привіт!\nЯ бот-помічник для менеджерів Маку!\nНапиши дію для виконання.\nЯ знаю такі дії:", reply_markup=kb_actions_add_user)
+    else:
+        await message.answer("Немає доступу!\nЗверніться до @valeryostapenko")
 
 # Action handlers in here
 # @dp.message_handler(Text(equals=allowed_actions_list, ignore_case=True), state=FSMAdmin.action_state)
 async def get_action(message: types.Message, state: FSMContext):
+    user_name = message.from_user.username
     async with state.proxy() as data:
         data['action'] = message.text
-    await FSMAdmin.section_state.set()
-    await message.answer("Тепер вибери розділ.\nЄ такі розділи:", reply_markup=kb_sections)
+    if data['action'] == "Додати користувача":
+        if user_name == "valeryostapenko":
+            await FSMAdmin.username_state.set()
+            await message.answer("Введи username (без символа @):")
+        else:
+            await FSMAdmin.action_state.set()
+            await message.answer("Немає доступу для цієї дії.\nЗверніться до @valeryostapenko", reply_markup=kb_actions)
+    else:
+        await FSMAdmin.section_state.set()
+        await message.answer("Тепер вибери розділ.\nЄ такі розділи:", reply_markup=kb_sections)
 
 # @dp.message_handler(state=FSMAdmin.action_state)
 async def get_action_err(message: types.Message, state: FSMContext):
@@ -43,6 +61,9 @@ async def get_section(message: types.Message, state: FSMContext):
     if data['action'] == "Додати новий предмет":
         await FSMAdmin.item_state.set()
         await message.answer("Напиши назву предмета:")
+    elif data['action'] == "Показати загальну кількість":
+        await FSMAdmin.action_state.set()
+        await message.answer(get_item_list_with_quantity(data['section']), reply_markup=kb_actions)
     else:
         kb_items = ReplyKeyboardMarkup(one_time_keyboard=True)
         for item in get_item_list(data['section']):
@@ -108,6 +129,18 @@ async def get_location(message: types.Message, state: FSMContext):
     await FSMAdmin.quantity_state.set()
     await message.answer("Тепер вкажи кількість:")
 
+# username handlers in here
+# @dp.message_handler(state=FSMAdmin.username_state)
+async def get_username(message: types.Message, state: FSMContext):
+    async with state.proxy() as data:
+        data['username'] = message.text
+    if message.from_user.username == "valeryostapenko":
+        await FSMAdmin.action_state.set()
+        await message.answer(add_username(data['username']), reply_markup=kb_actions)
+    else:
+        await FSMAdmin.action_state.set()
+        await message.answer("Немає доступу для цієї дії.\nЗверніться до @valeryostapenko", reply_markup=kb_actions)
+
 # Cancel handlers in here
 # @dp.message_handler(Text(equals="відміна", ignore_case=True), state="*")
 async def cancel_handler(message: types.Message, state: FSMContext):
@@ -129,5 +162,6 @@ def register_handlers_client(dp: Dispatcher):
     dp.register_message_handler(get_wrin, state=FSMAdmin.wrin_state)
     dp.register_message_handler(get_location,state=FSMAdmin.location_state)
     dp.register_message_handler(get_quantity, state=FSMAdmin.quantity_state)
+    dp.register_message_handler(get_username, state=FSMAdmin.username_state)
     
     

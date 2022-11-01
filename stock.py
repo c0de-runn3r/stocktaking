@@ -1,6 +1,6 @@
 from connect_db import conn, cur
 
-allowed_actions_list = ["Взяти", "Покласти", "Додати новий предмет"] # actions to do
+allowed_actions_list = ["Взяти", "Покласти", "Показати загальну кількість", "Додати новий предмет", "Додати користувача"] # actions to do
 
 def get_element_quantity(section, title): 
     number_cur = cur.execute("SELECT Quantity FROM " + section + " WHERE Name = ?;", (title,))
