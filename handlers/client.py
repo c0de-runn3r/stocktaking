@@ -113,6 +113,11 @@ async def get_quantity(message: types.Message, state: FSMContext):
             await message.answer(msg, reply_markup=kb_actions)
             await FSMAdmin.action_state.set()
 
+async def get_quantity_err(message: types.Message):
+    await message.answer("Краще вказати кількість цифрами)")
+    await FSMAdmin.quantity_state.set()
+
+
 # wrin handlers in here
 # @dp.message_handler(state=FSMAdmin.wrin_state)
 async def get_wrin(message: types.Message, state: FSMContext):
@@ -161,7 +166,8 @@ def register_handlers_client(dp: Dispatcher):
     dp.register_message_handler(get_item, state=FSMAdmin.item_state)
     dp.register_message_handler(get_wrin, state=FSMAdmin.wrin_state)
     dp.register_message_handler(get_location,state=FSMAdmin.location_state)
-    dp.register_message_handler(get_quantity, state=FSMAdmin.quantity_state)
+    dp.register_message_handler(get_quantity, regexp='^[0-9]+', state=FSMAdmin.quantity_state)
+    dp.register_message_handler(get_quantity_err, state=FSMAdmin.quantity_state)
     dp.register_message_handler(get_username, state=FSMAdmin.username_state)
     
     

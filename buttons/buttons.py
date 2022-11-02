@@ -9,7 +9,7 @@ cancel_bttn = KeyboardButton("❌ Відміна ❌")
 # actions keyboard
 kb_actions = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
 
-for act in allowed_actions_list:
+for act in allowed_actions_list[:-1]:
     act = KeyboardButton(act)
     kb_actions.add(act)
 
