@@ -21,8 +21,9 @@ def get_item_list(table_name): # get names of items in table *name* in DB
     return item_list
 
 def get_item_list_with_quantity(table_name):
-    text = "Таблиця {}\n".format(table_name)
-    items = cur.execute("SELECT Name, Quantity FROM " + table_name +";").fetchall()
+    text = "<strong>Таблиця {}</strong>\n\n".format(table_name)
+    items = cur.execute("SELECT Name, Quantity, WRIN FROM " + table_name +";").fetchall()
     for item in items:
-       text += item[0] + " - " + str(item[1]) + "\n"
+       text += "(" + str(item[2]) + ") " + item[0] + " - " + str(item[1]) + "\n"
     return text
+
