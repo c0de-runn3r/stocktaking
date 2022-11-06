@@ -75,8 +75,12 @@ async def get_item(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         data['item'] = message.text
     if data['action'] == 'Додати новий предмет':
-        await FSMAdmin.wrin_state.set()
-        await message.answer("Тепер введи WRIN:", reply_markup=kb_cancel)
+        if data['item'] in get_item_list(data['section']):
+            await message.answer(f"{data['item']} вже існує в таблиці {data['section']}\nВкажи іншу назву.", reply_markup=kb_cancel)
+            await FSMAdmin.item_state.set()
+        else:
+            await FSMAdmin.wrin_state.set()
+            await message.answer("Тепер введи WRIN:", reply_markup=kb_cancel)
     elif data['action'] == 'Видалити предмет':
         await FSMAdmin.action_state.set()
         await message.answer(delete_item(data['section'], data['item']), reply_markup=kb_actions)
