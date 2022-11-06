@@ -78,7 +78,7 @@ async def get_item(message: types.Message, state: FSMContext):
         await FSMAdmin.wrin_state.set()
         await message.answer("Тепер введи WRIN:", reply_markup=kb_cancel)
     elif data['action'] == 'Видалити предмет':
-        await FSMAdmin.section_state.set()
+        await FSMAdmin.action_state.set()
         await message.answer(delete_item(data['section'], data['item']), reply_markup=kb_actions)
     else:
         await FSMAdmin.quantity_state.set()
