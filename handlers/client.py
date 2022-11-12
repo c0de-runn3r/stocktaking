@@ -6,7 +6,7 @@ from aiogram.types import KeyboardButton, ReplyKeyboardMarkup
 
 from create_bot import get_username_list, add_username
 from connect_db import get_table_list, get_item_list, get_item_list_with_quantity
-from stock import add_new_item, allowed_actions_list, get_element_quantity, update_element_quantuty_take, update_element_quantuty_put, delete_item
+from stock import add_new_item, allowed_actions_list, get_element_quantity, update_element_quantuty_take, update_element_quantuty_put, delete_item, get_loc
 from buttons.buttons import kb_actions, kb_sections, cancel_bttn, kb_cancel
 
 class FSMAdmin(StatesGroup):
@@ -86,7 +86,9 @@ async def get_item(message: types.Message, state: FSMContext):
         await message.answer(delete_item(data['section'], data['item']), reply_markup=kb_actions)
     else:
         await FSMAdmin.quantity_state.set()
-        await message.answer("Тепер введи кількість:", reply_markup=kb_cancel)
+        location = get_loc(data['section'], data['item'])
+        msg = f"{data['item']} знаходиться <strong>{location}</strong>\nТепер введи кількість:"
+        await message.answer(msg, parse_mode='HTML', reply_markup=kb_cancel)
 
 # Quantity handlers in here
 async def get_quantity(message: types.Message, state: FSMContext):

@@ -37,4 +37,8 @@ def delete_item(section, name):
     conn.commit()
     return "Успішно видалено {} з {}.".format(name, section)
 
+def get_loc(section, name):
+    loc = cur.execute("SELECT Location FROM " + section + " WHERE Name = ?;", (name,))
+    location = loc.fetchone()
+    return location[0]
 
